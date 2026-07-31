@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>DCM Daily Drilling Report</title>
+<style>
+/* ============================================================
+   1. BASE / VARIABLES
+   ============================================================ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --primary:#1b3c6e;
+  --primary-light:#2b5298;
+  --accent:#d4a017;
+  --bg:#eef2f7;
+  --card:#fff;
+  --text:#1a1a1a;
+  --text-muted:#5a6472;
+  --border:#c6ccd6;
+  --danger:#c62828;
+  --radius:10px;
+}
+body{
+  font-family:"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  background:var(--bg);color:var(--text);
+  padding:16px;line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+}
+.container{max-width:1080px;margin:0 auto}
+
+/* ============================================================
+   2. SCREEN HEADER (logo upload + editable company name)
+   ============================================================ */
+.app-header{
+  background:linear-gradient(135deg,var(--primary),var(--primary-light));
+  color:#fff;padding:16px 20px;
+  border-radius:var(--radius) var(--radius) 0 0;
+  display:flex;flex-wrap:wrap;align-items:center;gap:16px;
+}
+.header-logo-box{display:flex;align-items:center;gap:10px}
+.logo-preview-wrap{
+  width:54px;height:54px;border-radius:8px;
+  background:rgba(255,255,255,.15);
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
+}
+.logo-preview-wrap img{max-width:100%;max-height:100%;object-fit:contain}
+.logo-preview-wrap img.hidden{display:none}
+.btn-upload{
+  display:inline-flex;align-items:center;gap:6px;cursor:pointer;
+  padding:8px 14px;background:#fff;color:var(--primary);
+  border-radius:6px;font-weight:700;font-size:.78rem;
+  box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .15s;
+}
+.btn-upload:hover{transform:translateY(-1px)}
+.btn-upload input[type=file]{display:none}
+.header-text{flex:1;min-width:210px}
+.company-input{
+  background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,.5);
+  color:#fff;font-size:1.25rem;font-weight:700;letter-spacing:1px;
+  width:100%;max-width:340px;padding:2px 4px;outline:none;
+}
+.company-input:focus{border-color:#fff}
+.header-text h1{font-size:1rem;font-weight:600;opacity:.92;letter-spacing:.5px;margin-top:2px}
+.header-meta{display:flex;flex-direction:column;gap:4px;align-items:flex-end}
+.header-meta label{font-size:.66rem;opacity:.85;text-transform:uppercase;letter-spacing:.3px}
+.header-meta input{
+  background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.35);
+  color:#fff;border-radius:4px;padding:4px 8px;font-size:.9rem;width:74px;text-align:center;
+}
+
+/* ============================================================
+   3. PRINT HEADER (hidden on screen)
+   ============================================================ */
+.print-header{display:none}
+
+/* ============================================================
+   4. SECTION CARDS (screen)
+   ============================================================ */
+.print-grid{display:block}
+section{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-top:none;
+  padding:14px 18px;
+}
+section:first-of-type{border-top:1px solid var(--border)}
+section:last-of-type{border-radius:0 0 var(--radius) var(--radius)}
+.section-title{
+  font-size:.95rem;font-weight:700;color:var(--primary);
+  margin-bottom:10px;padding:2px 0 6px 8px;
+  border-left:4px solid var(--accent);
+  display:flex;align-items:center;gap:6px;
+}
+.field-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(170px,1fr));
+  gap:6px 14px;
+}
+.field-grid-3{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
+.field-group{display:flex;flex-direction:column}
+.field-group label{
+  font-size:.68rem;font-weight:600;text-transform:uppercase;
+  letter-spacing:.3px;color:var(--text-muted);margin-bottom:1px;
+}
+.field-group input,.field-group select,.field-group textarea{
+  padding:6px 9px;border:1px solid var(--border);border-radius:5px;
+  font-size:.85rem;background:#fafbfc;transition:border-color .2s,background .2s;width:100%;
+}
+.field-group input:focus,.field-group select:focus,.field-group textarea:focus{
+  outline:none;border-color:var(--primary-light);background:#fff;
+}
+.field-group textarea{resize:vertical;min-height:46px}
+.field-group input[readonly]{background:#eef1f5}
+
+/* ============================================================
+   5. TABLES (screen)
+   ============================================================ */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.82rem}
+thead th{
+  background:var(--primary);color:#fff;
+  padding:6px 8px;text-align:left;font-weight:600;
+  font-size:.72rem;text-transform:uppercase;letter-spacing:.2px;white-space:nowrap;
+}
+tbody td{padding:4px 8px;border-bottom:1px solid #e2e6ec;vertical-align:middle}
+tbody td input,tbody td select{
+  width:100%;padding:3px 5px;border:1px solid var(--border);border-radius:4px;
+  font-size:.8rem;background:#fafbfc;min-width:52px;
+}
+tbody td input:focus,tbody td select:focus{outline:none;border-color:var(--primary-light)}
+tbody td input[readonly]{background:#eef1f5}
+tfoot td{padding:5px 8px;border-top:2px solid var(--primary);font-weight:700;font-size:.8rem}
+tfoot tr{background:#f4f6f9}
+
+/* ============================================================
+   6. ROW ACTIONS & BUTTONS
+   ============================================================ */
+.row-actions{display:flex;gap:3px;justify-content:center}
+.btn-icon{
+  width:26px;height:26px;border:none;border-radius:4px;cursor:pointer;
+  font-size:.95rem;line-height:1;display:inline-flex;align-items:center;
+  justify-content:center;color:#fff;transition:background .2s;
+}
+.btn-del{background:var(--danger)}.btn-del:hover{background:#b71c1c}
+.btn-add-row{
+  margin-top:6px;padding:5px 14px;background:#2e7d32;color:#fff;
+  border:none;border-radius:5px;cursor:pointer;font-size:.78rem;
+  font-weight:600;display:inline-flex;align-items:center;gap:5px;
+  transition:background .2s;
+}
+.btn-add-row:hover{background:#1b5e20}
+.btn-add-row svg{width:14px;height:14px;fill:currentColor}
+.col-act{width:38px}
+
+/* ============================================================
+   7. SIGNATURES (screen)
+   ============================================================ */
+.signature-row{display:flex;flex-wrap:wrap;gap:16px;margin-top:6px}
+.signature-box{flex:1 1 260px;display:flex;flex-direction:column}
+.signature-box>label{font-size:.78rem;font-weight:700;color:var(--primary);margin-bottom:4px}
+.signature-box canvas{
+  border:2px solid var(--border);border-radius:6px;background:#fff;
+  touch-action:none;width:100%;height:110px;cursor:crosshair;
+}
+.sig-field{display:flex;align-items:center;gap:6px;margin-top:6px}
+.sig-field label{font-size:.68rem;font-weight:600;text-transform:uppercase;color:var(--text-muted);white-space:nowrap}
+.sig-field input{
+  flex:1;padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:.82rem;
+}
+.signature-actions{display:flex;gap:6px;margin-top:6px}
+.btn-sm{
+  padding:4px 12px;border:none;border-radius:4px;cursor:pointer;
+  font-size:.7rem;font-weight:600;color:#fff;transition:background .2s;
+}
+.btn-clear{background:#666}.btn-clear:hover{background:#333}
+
+/* ============================================================
+   8. FORM ACTIONS
+   ============================================================ */
+.form-actions{
+  display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:14px;
+}
+.btn-primary{
+  padding:9px 26px;background:var(--primary);color:#fff;
+  border:none;border-radius:6px;font-size:.9rem;font-weight:700;cursor:pointer;
+  transition:background .2s;
+}
+.btn-primary:hover{background:var(--primary-light)}
+.btn-outline{
+  padding:9px 26px;background:transparent;color:var(--primary);
+  border:2px solid var(--primary);border-radius:6px;font-size:.9rem;
+  font-weight:700;cursor:pointer;transition:all .2s;
+}
+.btn-outline:hover{background:var(--primary);color:#fff}
+
+/* ============================================================
+   9. MOBILE (screen)
+   ============================================================ */
+@media(max-width:700px){
+  body{padding:8px}
+  .app-header{flex-direction:column;align-items:flex-start;gap:10px}
+  .header-meta{align-items:flex-start}
+  .field-grid{grid-template-columns:1fr 1fr}
+  section{padding:10px 12px}
+  .signature-row{flex-direction:column}
+}
+</style>
+<style>
+/* ============================================================
+   10. PRINT: A4 ENGINEERING LAYOUT
+   ============================================================ */
+@media print{
+  @page{size:A4 portrait;margin:7mm}
+
+  *,*::before,*::after{
+    background:transparent !important;
+    box-shadow:none !important;text-shadow:none !important;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact;
+  }
+  body{
+    padding:0;background:#fff;
+    font-family:Helvetica,Arial,"Segoe UI",sans-serif;
+    font-size:7.8pt;line-height:1.25;color:#000;
+  }
+  .container{max-width:none}
+
+  /* hide screen-only elements */
+  .app-header,.form-actions,.btn-add-row,.btn-icon,.row-actions,
+  .signature-actions,.btn-sm,.btn-primary,.btn-outline{display:none !important}
+
+  /* ---- print header ---- */
+  .print-header{
+    display:grid;
+    grid-template-columns:auto 1fr auto;
+    align-items:center;gap:4mm;
+    border:1.5pt solid #000;
+    padding:2.5mm 3mm;margin-bottom:2mm;
+  }
+  .print-logo{max-height:13mm;max-width:45mm;object-fit:contain}
+  .print-company{font-size:13pt;font-weight:700;letter-spacing:1px;line-height:1.1}
+  .print-title{font-size:8pt;font-weight:600;letter-spacing:.5px;margin-top:1mm}
+  .print-reportno{font-size:7pt;text-align:right;line-height:1.5}
+
+  /* ---- section shells ---- */
+  section{
+    border:1px solid #000;padding:1.8mm 2.2mm;break-inside:avoid;
+  }
+  section:first-of-type{border-top:1px solid #000}
+  section:last-of-type{border-radius:0}
+  .section-title{
+    font-size:7pt;color:#000;border-left:none;padding:0 0 1px 0;
+    border-bottom:1px solid #000;margin-bottom:1.5px;
+  }
+
+  /* ---- print grid ---- */
+  .print-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    grid-template-areas:
+      "gen     gen     actlist"
+      "met     met     met"
+      "equip   surv    pers"
+      "cons    matl    water"
+      "rmks    rmks    rmks"
+      "sigs    sigs    sigs";
+    gap:2mm;
+  }
+  #section-geninfo{grid-area:gen}
+  #section-activity{grid-area:actlist}
+  #section-meterage{grid-area:met}
+  #section-equipment{grid-area:equip}
+  #section-surveys{grid-area:surv}
+  #section-personnel{grid-area:pers}
+  #section-consumables{grid-area:cons}
+  #section-materials{grid-area:matl}
+  #section-water{grid-area:water}
+  #section-remarks{grid-area:rmks}
+  #section-signatures{grid-area:sigs}
+
+  /* ---- inputs become plain text ---- */
+  input,select,textarea{
+    border:none !important;background:transparent !important;
+    padding:0 !important;margin:0;font-size:inherit;font-family:inherit;
+    color:#000 !important;width:auto;min-width:0;height:auto;
+    -webkit-appearance:none;-moz-appearance:none;appearance:none;
+    resize:none;overflow:visible;
+  }
+  input[type=date]::-webkit-calendar-picker-indicator{display:none !important}
+  select::-ms-expand{display:none}
+
+  /* hide ALL placeholder hint text on export — blank fields must be pure white space */
+  input::placeholder,textarea::placeholder{
+    color:transparent !important;opacity:0 !important;
+  }
+
+  /* ---- field groups: "Label: Value" ---- */
+  .field-grid{display:block}
+  .field-group{display:inline-block;width:100%}
+  .field-group label{
+    display:inline;font-size:6.3pt;font-weight:700;
+    text-transform:none;letter-spacing:0;color:#000;margin:0;
+  }
+  .field-group label::after{content:": "}
+  .field-group input,.field-group select,.field-group textarea{
+    display:inline;width:auto;font-size:inherit;
+  }
+
+  /* geninfo: compact 3-column grid inside its 2/3 area */
+  #section-geninfo .field-grid{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:1mm 2mm;
+  }
+  #section-geninfo .field-group{width:100%}
+
+  /* ---- tables ---- */
+  table{font-size:6.6pt;border-collapse:collapse;width:100%}
+  thead th{
+    background:#000 !important;color:#fff !important;
+    padding:1.2px 2px;font-size:5.6pt;text-transform:none;letter-spacing:0;
+  }
+  tbody td{padding:1px 2px;border:0.5px solid #000}
+  tbody td input{padding:0 !important;min-width:0;width:100%}
+  table,thead th,tbody td{border:0.5px solid #000}
+  tfoot td{padding:1.5px 2px;border-top:1px solid #000;font-weight:700}
+  tfoot tr{background:transparent !important}
+  .col-act{display:none !important}
+  .table-wrap{overflow:visible}
+
+  /* meterage footer totals */
+  #section-meterage tfoot td{font-size:6.4pt}
+
+  /* activity list in top-right */
+  #section-activity table{font-size:6.4pt}
+  #section-activity thead th{font-size:5.4pt}
+  #section-activity tbody td{padding:1px 2px}
+  #section-activity tfoot td{font-size:6pt}
+
+  /* narrow tables */
+  #section-equipment table{font-size:6.4pt}
+  #section-equipment thead th{font-size:5.4pt}
+  #section-equipment tbody td{padding:1px 2px}
+  #section-surveys table{font-size:6.4pt}
+  #section-surveys thead th{font-size:5.4pt}
+  #section-surveys tbody td{padding:1px 2px}
+  #section-consumables table{font-size:6.4pt}
+  #section-consumables thead th{font-size:5.4pt}
+  #section-consumables tbody td{padding:1px 2px}
+  #section-materials table{font-size:6.4pt}
+  #section-materials thead th{font-size:5.4pt}
+  #section-materials tbody td{padding:1px 2px}
+  #section-personnel table{font-size:6.4pt}
+  #section-personnel thead th{font-size:5.4pt}
+  #section-personnel tbody td{padding:1px 2px}
+
+  /* water carting inline fields */
+  #section-water .field-group{display:inline-block;width:100%;margin-bottom:.5mm}
+
+  /* remarks: always show a neat framed box, even when empty */
+  #section-remarks textarea{
+    min-height:18mm;height:auto;width:100%;border:0.5px solid #000 !important;
+  }
+
+  /* ---- signatures ---- */
+  #section-signatures .signature-row{display:flex;flex-direction:row;gap:4mm;margin-top:0}
+  #section-signatures .signature-box{flex:1}
+  #section-signatures .signature-box>label{font-size:6.3pt;color:#000;margin-bottom:1mm}
+  #section-signatures .signature-box canvas{
+    border:1px solid #000;border-radius:0;height:16mm;width:100%;
+  }
+  .sig-field{display:block;margin-top:1mm}
+  .sig-field label{display:inline;font-size:6pt;font-weight:700;text-transform:none;color:#000}
+  .sig-field label::after{content:": "}
+  .sig-field input{display:inline;width:78%}
+}
+</style>
+</head>
+<body>
+<div class="container">
+<!-- ========== SCREEN HEADER ========== -->
+<div class="app-header">
+  <div class="header-logo-box">
+    <div class="logo-preview-wrap"><img id="logo-preview" class="hidden" alt="logo"></div>
+    <label class="btn-upload">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+      Upload Logo
+      <input type="file" id="logoInput" accept="image/*">
+    </label>
+  </div>
+  <div class="header-text">
+    <input class="company-input" id="companyName" value="DRILLCORP" maxlength="40">
+    <h1>DCM Daily Drilling Report</h1>
+  </div>
+  <div class="header-meta">
+    <label>Report #</label>
+    <input type="text" id="reportNum" value="001">
+  </div>
+</div>
+
+<!-- ========== PRINT HEADER ========== -->
+<div class="print-header">
+  <img id="print-logo" class="print-logo" alt="logo">
+  <div>
+    <div id="print-company" class="print-company">DRILLCORP</div>
+    <div class="print-title">DCM DAILY DRILLING REPORT</div>
+  </div>
+  <div class="print-reportno">Report No: <span id="print-reportnum">001</span></div>
+</div>
+
+<!-- ========== FORM SECTIONS ========== -->
+<div class="print-grid">
+
+<!-- 1. GENERAL INFO -->
+<section id="section-geninfo">
+  <div class="section-title">General Information</div>
+  <div class="field-grid">
+    <div class="field-group"><label>Date</label><input type="date" id="reportDate"></div>
+    <div class="field-group"><label>Day</label><input type="text" id="reportDay" readonly placeholder="--"></div>
+    <div class="field-group"><label>Shift</label><select id="shift"><option value="Day">Day</option><option value="Night">Night</option><option value="24hr">24 hr</option></select></div>
+    <div class="field-group"><label>Client</label><input type="text" id="client" placeholder="Client name"></div>
+    <div class="field-group"><label>Location</label><input type="text" id="location" placeholder="Site location"></div>
+    <div class="field-group"><label>Rig No</label><input type="text" id="rig" placeholder="Rig number"></div>
+  </div>
+</section>
+
+<!-- 2. DRILLING ACTIVITY / METERAGE -->
+<section id="section-meterage">
+  <div class="section-title">Drilling Activity / Meterage</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th rowspan="2">Hole Number</th>
+          <th rowspan="2">Type of Drilling</th>
+          <th rowspan="2">Size</th>
+          <th colspan="2">Meterage</th>
+          <th rowspan="2">Meters Drilled</th>
+          <th rowspan="2">Bit #</th>
+          <th rowspan="2">Core Rec.</th>
+          <th rowspan="2">Hours</th>
+        </tr>
+        <tr><th>From</th><th>To</th></tr>
+      </thead>
+      <tbody id="meterage-body"><tr><td><input type="text" class="m-hole" placeholder="Hole #"></td><td><input type="text" class="m-type" placeholder="Type"></td><td><input type="text" class="m-size" placeholder="Size"></td><td><input type="number" step="0.01" class="m-from" placeholder="0.00"></td><td><input type="number" step="0.01" class="m-to" placeholder="0.00"></td><td><input type="number" step="0.01" class="m-drilled" readonly></td><td><input type="text" class="m-bit" placeholder="Bit #"></td><td><input type="text" class="m-core" placeholder="Rec."></td><td><input type="number" step="0.5" class="m-hours" placeholder="0.0"></td></tr>
+<tr><td><input type="text" class="m-hole" placeholder="Hole #"></td><td><input type="text" class="m-type" placeholder="Type"></td><td><input type="text" class="m-size" placeholder="Size"></td><td><input type="number" step="0.01" class="m-from" placeholder="0.00"></td><td><input type="number" step="0.01" class="m-to" placeholder="0.00"></td><td><input type="number" step="0.01" class="m-drilled" readonly></td><td><input type="text" class="m-bit" placeholder="Bit #"></td><td><input type="text" class="m-core" placeholder="Rec."></td><td><input type="number" step="0.5" class="m-hours" placeholder="0.0"></td></tr>
+<tr><td><input type="text" class="m-hole" placeholder="Hole #"></td><td><input type="text" class="m-type" placeholder="Type"></td><td><input type="text" class="m-size" placeholder="Size"></td><td><input type="number" step="0.01" class="m-from" placeholder="0.00"></td><td><input type="number" step="0.01" class="m-to" placeholder="0.00"></td><td><input type="number" step="0.01" class="m-drilled" readonly></td><td><input type="text" class="m-bit" placeholder="Bit #"></td><td><input type="text" class="m-core" placeholder="Rec."></td><td><input type="number" step="0.5" class="m-hours" placeholder="0.0"></td></tr>
+<tr><td><input type="text" class="m-hole" placeholder="Hole #"></td><td><input type="text" class="m-type" placeholder="Type"></td><td><input type="text" class="m-size" placeholder="Size"></td><td><input type="number" step="0.01" class="m-from" placeholder="0.00"></td><td><input type="number" step="0.01" class="m-to" placeholder="0.00"></td><td><input type="number" step="0.01" class="m-drilled" readonly></td><td><input type="text" class="m-bit" placeholder="Bit #"></td><td><input type="text" class="m-core" placeholder="Rec."></td><td><input type="number" step="0.5" class="m-hours" placeholder="0.0"></td></tr>
+<tr><td><input type="text" class="m-hole" placeholder="Hole #"></td><td><input type="text" class="m-type" placeholder="Type"></td><td><input type="text" class="m-size" placeholder="Size"></td><td><input type="number" step="0.01" class="m-from" placeholder="0.00"></td><td><input type="number" step="0.01" class="m-to" placeholder="0.00"></td><td><input type="number" step="0.01" class="m-drilled" readonly></td><td><input type="text" class="m-bit" placeholder="Bit #"></td><td><input type="text" class="m-core" placeholder="Rec."></td><td><input type="number" step="0.5" class="m-hours" placeholder="0.0"></td></tr>
+<tr><td><input type="text" class="m-hole" placeholder="Hole #"></td><td><input type="text" class="m-type" placeholder="Type"></td><td><input type="text" class="m-size" placeholder="Size"></td><td><input type="number" step="0.01" class="m-from" placeholder="0.00"></td><td><input type="number" step="0.01" class="m-to" placeholder="0.00"></td><td><input type="number" step="0.01" class="m-drilled" readonly></td><td><input type="text" class="m-bit" placeholder="Bit #"></td><td><input type="text" class="m-core" placeholder="Rec."></td><td><input type="number" step="0.5" class="m-hours" placeholder="0.0"></td></tr>
+<tr><td><input type="text" class="m-hole" placeholder="Hole #"></td><td><input type="text" class="m-type" placeholder="Type"></td><td><input type="text" class="m-size" placeholder="Size"></td><td><input type="number" step="0.01" class="m-from" placeholder="0.00"></td><td><input type="number" step="0.01" class="m-to" placeholder="0.00"></td><td><input type="number" step="0.01" class="m-drilled" readonly></td><td><input type="text" class="m-bit" placeholder="Bit #"></td><td><input type="text" class="m-core" placeholder="Rec."></td><td><input type="number" step="0.5" class="m-hours" placeholder="0.0"></td></tr>
+<tr><td><input type="text" class="m-hole" placeholder="Hole #"></td><td><input type="text" class="m-type" placeholder="Type"></td><td><input type="text" class="m-size" placeholder="Size"></td><td><input type="number" step="0.01" class="m-from" placeholder="0.00"></td><td><input type="number" step="0.01" class="m-to" placeholder="0.00"></td><td><input type="number" step="0.01" class="m-drilled" readonly></td><td><input type="text" class="m-bit" placeholder="Bit #"></td><td><input type="text" class="m-core" placeholder="Rec."></td><td><input type="number" step="0.5" class="m-hours" placeholder="0.0"></td></tr></tbody>
+      <tfoot>
+        <tr>
+          <td colspan="5" style="text-align:right;">Total Meters:</td>
+          <td id="total-meters">0.00</td>
+          <td colspan="2"></td>
+          <td>Sub-total Hrs: <span id="total-hours">0.00</span></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</section>
+<!-- 3. EQUIPMENT -->
+<section id="section-equipment">
+  <div class="section-title">Equipment</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Unit</th><th>Operating Hours</th><th>Standby Hours</th><th class="col-act"></th></tr>
+      </thead>
+      <tbody id="equipment-body">
+        <tr>
+          <td><input type="text" class="e-unit" placeholder="Equipment"></td>
+          <td><input type="number" step="0.5" class="e-op" placeholder="0"></td>
+          <td><input type="number" step="0.5" class="e-stby" placeholder="0"></td>
+          <td class="col-act"><div class="row-actions"><button type="button" class="btn-icon btn-del" onclick="deleteRow(this)">&times;</button></div></td>
+        </tr>
+        <tr>
+          <td><input type="text" class="e-unit" placeholder="Equipment"></td>
+          <td><input type="number" step="0.5" class="e-op" placeholder="0"></td>
+          <td><input type="number" step="0.5" class="e-stby" placeholder="0"></td>
+          <td class="col-act"><div class="row-actions"><button type="button" class="btn-icon btn-del" onclick="deleteRow(this)">&times;</button></div></td>
+        </tr>
+        <tr>
+          <td><input type="text" class="e-unit" placeholder="Equipment"></td>
+          <td><input type="number" step="0.5" class="e-op" placeholder="0"></td>
+          <td><input type="number" step="0.5" class="e-stby" placeholder="0"></td>
+          <td class="col-act"><div class="row-actions"><button type="button" class="btn-icon btn-del" onclick="deleteRow(this)">&times;</button></div></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <button type="button" class="btn-add-row" onclick="addEquipmentRow()">
+    <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+    Add Equipment
+  </button>
+</section>
+
+<!-- 4. SURVEYS (CAMERA RENTALS) -->
+<section id="section-surveys">
+  <div class="section-title">Surveys (Camera Rentals)</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Camera Name</th><th>Days</th><th class="col-act"></th></tr>
+      </thead>
+      <tbody id="surveys-body">
+        <tr>
+          <td><input type="text" class="s-cam" placeholder="Camera"></td>
+          <td><input type="number" step="0.5" class="s-days" placeholder="0"></td>
+          <td class="col-act"><div class="row-actions"><button type="button" class="btn-icon btn-del" onclick="deleteRow(this)">&times;</button></div></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <button type="button" class="btn-add-row" onclick="addSurveyRow()">
+    <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+    Add Survey
+  </button>
+</section>
+
+<!-- 5. DRILLING ACTIVITY LIST -->
+<section id="section-activity">
+  <div class="section-title">Drilling Activity List</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Activity Description</th><th>Hours</th><th class="col-act"></th></tr>
+      </thead>
+      <tbody id="activity-body">
+        <tr>
+          <td><input type="text" class="a-desc" placeholder="Activity"></td>
+          <td><input type="number" step="0.5" class="a-hours" placeholder="0.0"></td>
+          <td class="col-act"><div class="row-actions"><button type="button" class="btn-icon btn-del" onclick="deleteRow(this)">&times;</button></div></td>
+        </tr>
+        <tr>
+          <td><input type="text" class="a-desc" placeholder="Activity"></td>
+          <td><input type="number" step="0.5" class="a-hours" placeholder="0.0"></td>
+          <td class="col-act"><div class="row-actions"><button type="button" class="btn-icon btn-del" onclick="deleteRow(this)">&times;</button></div></td>
+        </tr>
+        <tr>
+          <td><input type="text" class="a-desc" placeholder="Activity"></td>
+          <td><input type="number" step="0.5" class="a-hours" placeholder="0.0"></td>
+          <td class="col-act"><div class="row-actions"><button type="button" class="btn-icon btn-del" onclick="deleteRow(this)">&times;</button></div></td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td style="text-align:right;">Total Hours For Shift:</td>
+          <td><span id="activity-total">0.00</span></td>
+          <td class="col-act"></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  <button type="button" class="btn-add-row" onclick="addActivityRow()">
+    <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+    Add Activity
+  </button>
+</section>
+<!-- 6. CONSUMABLES -->
+<section id="section-consumables">
+  <div class="section-title">Consumables</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Item</th><th>Size</th><th>Qty</th><th class="col-act"></th></tr>
+      </thead>
+      <tbody id="consumables-body">
+        <tr>
+          <td><input type="text" class="cn-item" placeholder="Item"></td>
+          <td><input type="text" class="cn-size" placeholder="Size"></td>
+          <td><input type="text" class="cn-qty" placeholder="Qty"></td>
+          <td class="col-act"><div class="row-actions"><button type="button" class="btn-icon btn-del" onclick="deleteRow(this)">&times;</button></div></td>
+        </tr>
+        <tr>
+          <td><input type="text" class="cn-item" placeholder="Item"></td>
+          <td><input type="text" class="cn-size" placeholder="Size"></td>
+          <td><input type="text" class="cn-qty" placeholder="Qty"></td>
+          <td class="col-act"><div class="row-actions"><button type="button" class="btn-icon btn-del" onclick="deleteRow(this)">&times;</button></div></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <button type="button" class="btn-add-row" onclick="addConsumableRow()">
+    <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+    Add Consumable
+  </button>
+</section>
+
+<!-- 7. MATERIALS LEFT IN HOLE -->
+<section id="section-materials">
+  <div class="section-title">Materials Left in Hole</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Item</th><th>Size</th><th>Qty</th><th class="col-act"></th></tr>
+      </thead>
+      <tbody id="materials-body">
+        <tr>
+          <td><input type="text" class="mat-item" placeholder="Item"></td>
+          <td><input type="text" class="mat-size" placeholder="Size"></td>
+          <td><input type="text" class="mat-qty" placeholder="Qty"></td>
+          <td class="col-act"><div class="row-actions"><button type="button" class="btn-icon btn-del" onclick="deleteRow(this)">&times;</button></div></td>
+        </tr>
+        <tr>
+          <td><input type="text" class="mat-item" placeholder="Item"></td>
+          <td><input type="text" class="mat-size" placeholder="Size"></td>
+          <td><input type="text" class="mat-qty" placeholder="Qty"></td>
+          <td class="col-act"><div class="row-actions"><button type="button" class="btn-icon btn-del" onclick="deleteRow(this)">&times;</button></div></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <button type="button" class="btn-add-row" onclick="addMaterialRow()">
+    <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+    Add Material
+  </button>
+</section>
+
+<!-- 8. PERSONNEL -->
+<section id="section-personnel">
+  <div class="section-title">Personnel</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Classification</th><th>Name</th><th>Hrs</th><th class="col-act"></th></tr>
+      </thead>
+      <tbody id="personnel-body">
+        <tr>
+          <td><input type="text" class="p-class" placeholder="Role"></td>
+          <td><input type="text" class="p-name" placeholder="Name"></td>
+          <td><input type="number" step="0.5" class="p-hrs" placeholder="0"></td>
+          <td class="col-act"><div class="row-actions"><button type="button" class="btn-icon btn-del" onclick="deleteRow(this)">&times;</button></div></td>
+        </tr>
+        <tr>
+          <td><input type="text" class="p-class" placeholder="Role"></td>
+          <td><input type="text" class="p-name" placeholder="Name"></td>
+          <td><input type="number" step="0.5" class="p-hrs" placeholder="0"></td>
+          <td class="col-act"><div class="row-actions"><button type="button" class="btn-icon btn-del" onclick="deleteRow(this)">&times;</button></div></td>
+        </tr>
+        <tr>
+          <td><input type="text" class="p-class" placeholder="Role"></td>
+          <td><input type="text" class="p-name" placeholder="Name"></td>
+          <td><input type="number" step="0.5" class="p-hrs" placeholder="0"></td>
+          <td class="col-act"><div class="row-actions"><button type="button" class="btn-icon btn-del" onclick="deleteRow(this)">&times;</button></div></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <button type="button" class="btn-add-row" onclick="addPersonnelRow()">
+    <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+    Add Personnel
+  </button>
+</section>
+<!-- 9. WATER CARTING -->
+<section id="section-water">
+  <div class="section-title">Water Carting</div>
+  <div class="field-grid field-grid-3">
+    <div class="field-group"><label>No. of Loads</label><input type="number" step="1" id="wc-loads" placeholder="0"></div>
+    <div class="field-group"><label>Kms per One Load</label><input type="number" step="0.1" id="wc-kms" placeholder="0"></div>
+    <div class="field-group"><label>Hours</label><input type="number" step="0.5" id="wc-hours" placeholder="0"></div>
+  </div>
+</section>
+
+<!-- 10. REMARKS -->
+<section id="section-remarks">
+  <div class="section-title">Remarks</div>
+  <div class="field-group">
+    <textarea id="remarks" rows="3" placeholder="Enter remarks, safety notes, incidents, observations..."></textarea>
+  </div>
+</section>
+
+<!-- 11. SIGNATURES -->
+<section id="section-signatures">
+  <div class="section-title">Signatures</div>
+  <div class="signature-row">
+    <div class="signature-box">
+      <label>Driller Signature</label>
+      <canvas id="sig-driller" height="110"></canvas>
+      <div class="sig-field"><label>Driller Name</label><input type="text" id="driller-name" placeholder="Full name"></div>
+      <div class="signature-actions">
+        <button type="button" class="btn-sm btn-clear" onclick="clearSig('sig-driller')">Clear</button>
+      </div>
+    </div>
+    <div class="signature-box">
+      <label>Client / Representative Signature</label>
+      <canvas id="sig-client" height="110"></canvas>
+      <div class="sig-field"><label>Client Name</label><input type="text" id="client-name" placeholder="Full name"></div>
+      <div class="sig-field"><label>Client Email</label><input type="email" id="client-email" placeholder="Email address"></div>
+      <div class="signature-actions">
+        <button type="button" class="btn-sm btn-clear" onclick="clearSig('sig-client')">Clear</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div><!-- /print-grid -->
+
+<!-- ========== FORM ACTIONS ========== -->
+<div class="form-actions">
+  <button type="button" class="btn-outline" onclick="resetForm()">Reset Form</button>
+  <button type="button" class="btn-primary" onclick="previewPrint()">Print / PDF</button>
+  <button type="button" class="btn-primary" onclick="exportJSON()">Export Data</button>
+</div>
+
+</div><!-- /container -->
+<script>
+/* ============================================================
+   INIT
+   ============================================================ */
+(function init(){
+  var d=new Date();
+  document.getElementById('reportDate').value=d.toISOString().slice(0,10);
+  updateDay();updateMeterage();updateActivityTotal();
+  try{
+    var logo=localStorage.getItem('dcm_logo');
+    if(logo){
+      var prev=document.getElementById('logo-preview');
+      prev.src=logo;prev.classList.remove('hidden');
+      document.getElementById('print-logo').src=logo;
+    }
+    var co=localStorage.getItem('dcm_company');
+    if(co){document.getElementById('companyName').value=co;document.getElementById('print-company').textContent=co}
+    var rn=localStorage.getItem('dcm_reportnum');
+    if(rn){document.getElementById('reportNum').value=rn;document.getElementById('print-reportnum').textContent=rn}
+  }catch(e){}
+})();
+
+/* ============================================================
+   LOGO UPLOAD + COMPANY NAME + REPORT #
+   ============================================================ */
+document.getElementById('logoInput').addEventListener('change',function(e){
+  var file=e.target.files[0];
+  if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    var dataUrl=ev.target.result;
+    var prev=document.getElementById('logo-preview');
+    prev.src=dataUrl;prev.classList.remove('hidden');
+    document.getElementById('print-logo').src=dataUrl;
+    try{localStorage.setItem('dcm_logo',dataUrl)}catch(err){}
+  };
+  reader.readAsDataURL(file);
+});
+document.getElementById('companyName').addEventListener('input',function(){
+  var v=this.value||'DRILLCORP';
+  document.getElementById('print-company').textContent=v;
+  try{localStorage.setItem('dcm_company',v)}catch(err){}
+});
+document.getElementById('reportNum').addEventListener('input',function(){
+  var v=this.value||'001';
+  document.getElementById('print-reportnum').textContent=v;
+  try{localStorage.setItem('dcm_reportnum',v)}catch(err){}
+});
+
+/* ============================================================
+   DATE -> DAY
+   ============================================================ */
+function updateDay(){
+  var v=document.getElementById('reportDate').value;
+  if(v){
+    var days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    document.getElementById('reportDay').value=days[new Date(v+'T00:00:00').getDay()];
+  }
+}
+document.getElementById('reportDate').addEventListener('change',updateDay);
+
+/* ============================================================
+   METERAGE CALC
+   ============================================================ */
+document.getElementById('meterage-body').addEventListener('input',function(e){
+  if(e.target.classList.contains('m-from')||e.target.classList.contains('m-to')||e.target.classList.contains('m-hours')){
+    updateMeterage();
+  }
+});
+function updateMeterage(){
+  var rows=document.querySelectorAll('#meterage-body tr');
+  var totalM=0,totalH=0;
+  rows.forEach(function(tr){
+    var from=parseFloat(tr.querySelector('.m-from').value)||0;
+    var to=parseFloat(tr.querySelector('.m-to').value)||0;
+    var el=tr.querySelector('.m-drilled');
+    if(from>0&&to>0&&to>=from){var v=to-from;el.value=v.toFixed(2);totalM+=v}else el.value='';
+    totalH+=parseFloat(tr.querySelector('.m-hours').value)||0;
+  });
+  document.getElementById('total-meters').textContent=totalM.toFixed(2);
+  document.getElementById('total-hours').textContent=totalH.toFixed(2);
+}
+
+/* ============================================================
+   ACTIVITY LIST TOTAL
+   ============================================================ */
+document.getElementById('activity-body').addEventListener('input',function(e){
+  if(e.target.classList.contains('a-hours'))updateActivityTotal();
+});
+function updateActivityTotal(){
+  var total=0;
+  document.querySelectorAll('#activity-body tr').forEach(function(tr){
+    total+=parseFloat(tr.querySelector('.a-hours').value)||0;
+  });
+  document.getElementById('activity-total').textContent=total.toFixed(2);
+}
+/* ============================================================
+   DYNAMIC ROWS
+   ============================================================ */
+function addEquipmentRow(){
+  addTr('equipment-body','<td><input type="text" class="e-unit" placeholder="Equipment"></td><td><input type="number" step="0.5" class="e-op" placeholder="0"></td><td><input type="number" step="0.5" class="e-stby" placeholder="0"></td><td class="col-act"><div class="row-actions"><button type="button" class="btn-icon btn-del" onclick="deleteRow(this)">&times;</button></div></td>');
+}
+function addSurveyRow(){
+  addTr('surveys-body','<td><input type="text" class="s-cam" placeholder="Camera"></td><td><input type="number" step="0.5" class="s-days" placeholder="0"></td><td class="col-act"><div class="row-actions"><button type="button" class="btn-icon btn-del" onclick="deleteRow(this)">&times;</button></div></td>');
+}
+function addActivityRow(){
+  addTr('activity-body','<td><input type="text" class="a-desc" placeholder="Activity"></td><td><input type="number" step="0.5" class="a-hours" placeholder="0.0"></td><td class="col-act"><div class="row-actions"><button type="button" class="btn-icon btn-del" onclick="deleteRow(this)">&times;</button></div></td>');
+}
+function addConsumableRow(){
+  addTr('consumables-body','<td><input type="text" class="cn-item" placeholder="Item"></td><td><input type="text" class="cn-size" placeholder="Size"></td><td><input type="text" class="cn-qty" placeholder="Qty"></td><td class="col-act"><div class="row-actions"><button type="button" class="btn-icon btn-del" onclick="deleteRow(this)">&times;</button></div></td>');
+}
+function addMaterialRow(){
+  addTr('materials-body','<td><input type="text" class="mat-item" placeholder="Item"></td><td><input type="text" class="mat-size" placeholder="Size"></td><td><input type="text" class="mat-qty" placeholder="Qty"></td><td class="col-act"><div class="row-actions"><button type="button" class="btn-icon btn-del" onclick="deleteRow(this)">&times;</button></div></td>');
+}
+function addPersonnelRow(){
+  addTr('personnel-body','<td><input type="text" class="p-class" placeholder="Role"></td><td><input type="text" class="p-name" placeholder="Name"></td><td><input type="number" step="0.5" class="p-hrs" placeholder="0"></td><td class="col-act"><div class="row-actions"><button type="button" class="btn-icon btn-del" onclick="deleteRow(this)">&times;</button></div></td>');
+}
+function addTr(tbodyId,html){
+  var t=document.getElementById(tbodyId),tr=document.createElement('tr');
+  tr.innerHTML=html;
+  t.appendChild(tr);
+}
+function deleteRow(btn){
+  var tr=btn.closest('tr');
+  if(tr&&tr.parentNode){
+    if(tr.parentNode.rows.length>1)tr.parentNode.removeChild(tr);
+    else tr.querySelectorAll('input').forEach(function(i){i.value=''});
+    updateMeterage();updateActivityTotal();
+  }
+}
+
+/* ============================================================
+   SIGNATURE PADS
+   ============================================================ */
+function initCanvas(id){
+  var c=document.getElementById(id),ctx=c.getContext('2d');
+  var drawing=false;
+  c.width=c.clientWidth;c.height=c.clientHeight;
+  function gp(e){var r=c.getBoundingClientRect(),t=e.touches?e.touches[0]:e;return{x:t.clientX-r.left,y:t.clientY-r.top}}
+  function sd(e){e.preventDefault();drawing=true;var p=gp(e);ctx.beginPath();ctx.moveTo(p.x,p.y)}
+  function dr(e){e.preventDefault();if(!drawing)return;var p=gp(e);ctx.lineTo(p.x,p.y);ctx.strokeStyle='#000';ctx.lineWidth=2;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke()}
+  function ed(e){e.preventDefault();drawing=false}
+  c.addEventListener('mousedown',sd);c.addEventListener('mousemove',dr);c.addEventListener('mouseup',ed);c.addEventListener('mouseleave',ed);
+  c.addEventListener('touchstart',sd,{passive:false});c.addEventListener('touchmove',dr,{passive:false});c.addEventListener('touchend',ed,{passive:false});
+  window.addEventListener('resize',function(){
+    var d=c.toDataURL();c.width=c.clientWidth;c.height=c.clientHeight;
+    var i=new Image();i.onload=function(){ctx.drawImage(i,0,0)};i.src=d;
+  });
+}
+function clearSig(id){var c=document.getElementById(id);c.getContext('2d').clearRect(0,0,c.width,c.height)}
+
+/* ============================================================
+   PRINT: AUTO-PAD BLANK ROWS
+   ============================================================ */
+function ensureRows(id,min){
+  var tb=document.getElementById(id);
+  while(tb.rows.length<min){
+    var proto=tb.rows[0].cloneNode(true);
+    proto.className='pad-row';
+    proto.querySelectorAll('input,select,textarea').forEach(function(i){
+      i.value='';
+      i.removeAttribute('data-print-zero');
+      i.removeAttribute('data-orig');
+    });
+    tb.appendChild(proto);
+  }
+}
+function padForPrint(){
+  ensureRows('meterage-body',8);
+  ensureRows('equipment-body',3);
+  ensureRows('consumables-body',3);
+  ensureRows('materials-body',3);
+  ensureRows('personnel-body',3);
+}
+function unpad(){
+  document.querySelectorAll('tr.pad-row').forEach(function(tr){
+    if(tr.parentNode)tr.parentNode.removeChild(tr);
+  });
+}
+
+/* ============================================================
+   PRINT: FIELD VALUE RULES
+   - Meterage From/To/Meters Drilled/Hours + Water Carting Hours:
+     show 0.00 / 0 when left empty (matches paper original).
+   - Equipment/Surveys/Consumables/Personnel + Water Loads/Kms:
+     stay pure blank when not manually entered.
+   ============================================================ */
+function prepareNumericDisplay(){
+  document.querySelectorAll('#meterage-body .m-from,#meterage-body .m-to,#meterage-body .m-drilled,#meterage-body .m-hours')
+    .forEach(function(el){
+      if(!String(el.value).trim()){
+        el.setAttribute('data-print-zero','1');
+        el.value='0.00';
+      }
+    });
+  var wch=document.getElementById('wc-hours');
+  if(wch&&!String(wch.value).trim()){
+    wch.setAttribute('data-print-zero','1');
+    wch.value='0';
+  }
+}
+function restoreNumericDisplay(){
+  document.querySelectorAll('[data-print-zero]').forEach(function(el){
+    el.value='';
+    el.removeAttribute('data-print-zero');
+  });
+}
+window.addEventListener('beforeprint',function(){padForPrint();prepareNumericDisplay();});
+window.addEventListener('afterprint',function(){restoreNumericDisplay();unpad();});
+function previewPrint(){
+  padForPrint();
+  prepareNumericDisplay();
+  window.print();
+  setTimeout(function(){restoreNumericDisplay();unpad();},200);
+}
+
+/* ============================================================
+   RESET
+   ============================================================ */
+function resetForm(){
+  if(!confirm('Reset all fields to default?'))return;
+  document.querySelectorAll('input,textarea,select').forEach(function(el){
+    if(el.type==='date')el.value=new Date().toISOString().slice(0,10);
+    else if(el.tagName==='SELECT')el.selectedIndex=0;
+    else if(el.id==='companyName'){/* keep */}
+    else if(el.id==='reportNum'){el.value='001';document.getElementById('print-reportnum').textContent='001'}
+    else el.value='';
+  });
+  clearSig('sig-driller');clearSig('sig-client');
+  updateDay();updateMeterage();updateActivityTotal();
+}
+
+/* ============================================================
+   EXPORT JSON
+   ============================================================ */
+function exportJSON(){
+  var d={};
+  d.report={company:g('companyName'),reportNum:g('reportNum'),date:g('reportDate'),day:g('reportDay'),shift:g('shift'),client:g('client'),location:g('location'),rig:g('rig')};
+  d.meterage=[];document.querySelectorAll('#meterage-body tr').forEach(function(r){d.meterage.push({hole:q(r,'.m-hole'),type:q(r,'.m-type'),size:q(r,'.m-size'),from:q(r,'.m-from'),to:q(r,'.m-to'),drilled:q(r,'.m-drilled'),bit:q(r,'.m-bit'),core:q(r,'.m-core'),hours:q(r,'.m-hours')})});
+  d.totals={meters:document.getElementById('total-meters').textContent,hours:document.getElementById('total-hours').textContent};
+  d.equipment=[];document.querySelectorAll('#equipment-body tr').forEach(function(r){d.equipment.push({unit:q(r,'.e-unit'),operating:q(r,'.e-op'),standby:q(r,'.e-stby')})});
+  d.surveys=[];document.querySelectorAll('#surveys-body tr').forEach(function(r){d.surveys.push({camera:q(r,'.s-cam'),days:q(r,'.s-days')})});
+  d.activityList=[];document.querySelectorAll('#activity-body tr').forEach(function(r){d.activityList.push({description:q(r,'.a-desc'),hours:q(r,'.a-hours')})});
+  d.activityTotal=document.getElementById('activity-total').textContent;
+  d.consumables=[];document.querySelectorAll('#consumables-body tr').forEach(function(r){d.consumables.push({item:q(r,'.cn-item'),size:q(r,'.cn-size'),qty:q(r,'.cn-qty')})});
+  d.materialsLeftInHole=[];document.querySelectorAll('#materials-body tr').forEach(function(r){d.materialsLeftInHole.push({item:q(r,'.mat-item'),size:q(r,'.mat-size'),qty:q(r,'.mat-qty')})});
+  d.personnel=[];document.querySelectorAll('#personnel-body tr').forEach(function(r){d.personnel.push({classification:q(r,'.p-class'),name:q(r,'.p-name'),hours:q(r,'.p-hrs')})});
+  d.waterCarting={loads:g('wc-loads'),kmsPerLoad:g('wc-kms'),hours:g('wc-hours')};
+  d.remarks=g('remarks');
+  d.signatures={drillerName:g('driller-name'),clientName:g('client-name'),clientEmail:g('client-email')};
+  var b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'}),a=document.createElement('a');
+  a.download='dcm_report_'+d.report.date+'.json';a.href=URL.createObjectURL(b);a.click();URL.revokeObjectURL(a.href);
+  function g(i){return document.getElementById(i).value}
+  function q(r,s){return r.querySelector(s).value}
+}
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+document.addEventListener('DOMContentLoaded',function(){
+  initCanvas('sig-driller');
+  initCanvas('sig-client');
+});
+</script>
+</body>
+</html>
+
+
+
+
+
+
